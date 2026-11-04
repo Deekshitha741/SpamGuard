@@ -1,0 +1,45 @@
+name: SpamGuard scan
+
+on:
+  schedule:
+    # Times are in UTC: 00:30 and 12:30 UTC = 6:00 AM and 6:00 PM India time.
+    - cron: '30 0,12 * * *'
+  workflow_dispatch:   # adds a "Run workflow" button for manual runs
+
+# never let two runs overlap (e.g. a manual run during a scheduled one)
+concurrency:
+  group: spamguard
+  cancel-in-progress: false
+
+jobs:
+  scan:
+    runs-on: ubuntu-latest
+    timeout-minutes: 75
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+          cache: 'pip'
+
+      # CPU-only PyTorch is far smaller than the default download
+      - name: Install PyTorch (CPU)
+        run: pip install torch --index-url https://download.pytorch.org/whl/cpu
+
+      - name: Install the other libraries
+        run: pip install -r requirements.txt
+
+      - name: Cache the AI model
+        uses: actions/cache@v4
+        with:
+          path: ~/.cache/huggingface
+          key: hf-model-bert-tiny-enron-v1
+
+      - name: Write Gmail login from secret
+        env:
+          GMAIL_TOKEN_PERSONAL: ${{ secrets.GMAIL_TOKEN_PERSONAL }}
+        run: printf '%s' "$GMAIL_TOKEN_PERSONAL" > token_personal.json
+
+      - name: Filter inbox
+        run: python filter_inbox.py personal --limit 5000 --max-minutes 45 --apply

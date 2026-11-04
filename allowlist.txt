@@ -1,0 +1,7 @@
+# Senders that must NEVER be moved. One per line, matched anywhere in the
+# "From" header (so you can use a full address or just a domain).
+# Lines starting with # are ignored. Examples:
+#
+# mom@gmail.com
+# @mybank.com
+# @myschool.edu
